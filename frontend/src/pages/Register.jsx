@@ -1,49 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Improved Login modal
- * - Controlled inputs with basic client-side validation
- * - Loading / error states and accessible focus handling
- * - Calls a placeholder API (replace with your /api/auth/login)
- * - Accepts onClose and onOpenRegister props
- *
- * Usage: <Login onClose={() => {}} onOpenRegister={() => {}} />
+ * Simplified Register modal (personal accounts only)
+ * - Usage: <Register onClose={() => {}} onOpenLogin={() => {}} />
+ * - Clean UI, client-side validation, subtle entrance animation, accessible
  */
-export default function Login({ onClose, onOpenRegister }) {
+
+export default function Register({ onClose, onOpenLogin }) {
   const [loading, setLoading] = useState(false);
-  const [values, setValues] = useState({ email: "", password: "", remember: false });
+  const [values, setValues] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
   const modalRef = useRef(null);
   const firstInputRef = useRef(null);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement;
-    // focus first field when modal opens
     firstInputRef.current?.focus();
 
     function handleKey(e) {
       if (e.key === "Escape") onClose();
-      if (e.key === "Tab") {
-        // basic focus trap
-        const focusable = modalRef.current?.querySelectorAll(
-          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusable || focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
     }
-
     document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden"; // prevent background scroll
-
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = "";
@@ -52,15 +30,19 @@ export default function Login({ onClose, onOpenRegister }) {
   }, [onClose]);
 
   function onChange(e) {
-    const { name, value, type, checked } = e.target;
     setError("");
-    setValues((v) => ({ ...v, [name]: type === "checkbox" ? checked : value }));
+    setValues((v) => ({ ...v, [e.target.name]: e.target.value }));
   }
 
   function validate() {
-    if (!values.email || !values.password) return "Please enter both email and password.";
+    if (!values.name.trim() || !values.email.trim() || !values.password || !values.confirm) {
+      return "Please fill all fields.";
+    }
+    // simple email check
     const emailRe = /\S+@\S+\.\S+/;
-    if (!emailRe.test(values.email)) return "Please enter a valid email address.";
+    if (!emailRe.test(values.email)) return "Please enter a valid email.";
+    if (values.password.length < 6) return "Password must be at least 6 characters.";
+    if (values.password !== values.confirm) return "Passwords do not match.";
     return "";
   }
 
@@ -75,21 +57,21 @@ export default function Login({ onClose, onOpenRegister }) {
 
     setLoading(true);
     try {
-      // Replace with real API call:
-      // const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: values.email, password: values.password }) });
+      // TODO: replace with real API call to /api/auth/register
+      // const res = await fetch("/api/auth/register", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ name: values.name, email: values.email, password: values.password }) });
       // const data = await res.json();
-      // if (!res.ok) throw new Error(data.message || "Login failed");
-      // store token, update app state, etc.
+      // if (!res.ok) throw new Error(data.message || "Registration failed");
 
-      // Demo: simulate network delay
+      // Simulated network delay for demo
       await new Promise((r) => setTimeout(r, 800));
 
-      // On success close modal
+      // On success: close and optionally open login
       setLoading(false);
       onClose();
+      if (onOpenLogin) setTimeout(onOpenLogin, 260);
     } catch (err) {
       setLoading(false);
-      setError(err.message || "Login failed. Please try again.");
+      setError(err.message || "Registration failed. Try again.");
     }
   }
 
@@ -97,7 +79,7 @@ export default function Login({ onClose, onOpenRegister }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/45 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
 
@@ -106,15 +88,15 @@ export default function Login({ onClose, onOpenRegister }) {
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="login-title"
+        aria-labelledby="register-title"
         className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 transform transition-all duration-400 ease-out animate-modal-in"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="login-title" className="text-2xl font-extrabold text-slate-900">
-              Sign in
+            <h2 id="register-title" className="text-2xl font-extrabold text-slate-900">
+              Create your account
             </h2>
-            <p className="mt-1 text-sm text-slate-500">Access your account</p>
+            <p className="mt-1 text-sm text-slate-500">Sign up to try the authentication demo.</p>
           </div>
 
           <button
@@ -132,71 +114,80 @@ export default function Login({ onClose, onOpenRegister }) {
           {error && <div className="text-sm text-red-700 bg-red-50 px-3 py-2 rounded">{error}</div>}
 
           <label className="block">
-            <span className="text-sm font-medium text-slate-700">Email</span>
+            <span className="text-sm font-medium text-slate-700">Full name</span>
             <input
               ref={firstInputRef}
+              name="name"
+              value={values.name}
+              onChange={onChange}
+              type="text"
+              required
+              placeholder="Jane Doe"
+              className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Email</span>
+            <input
               name="email"
               value={values.email}
               onChange={onChange}
               type="email"
-              autoComplete="email"
               required
               placeholder="you@example.com"
               className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
             />
           </label>
 
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">Password</span>
-            <input
-              name="password"
-              value={values.password}
-              onChange={onChange}
-              type="password"
-              autoComplete="current-password"
-              required
-              placeholder="Your password"
-              className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
-            />
-          </label>
-
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Password</span>
               <input
-                name="remember"
-                checked={values.remember}
+                name="password"
+                value={values.password}
                 onChange={onChange}
-                type="checkbox"
-                className="h-4 w-4"
+                type="password"
+                required
+                placeholder="At least 6 characters"
+                className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
-              <span className="text-slate-600">Remember me</span>
             </label>
 
-            <button type="button" className="text-sky-600 hover:underline text-sm" onClick={() => alert("Forgot password flow not implemented in demo.")}>
-              Forgot?
-            </button>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Confirm</span>
+              <input
+                name="confirm"
+                value={values.confirm}
+                onChange={onChange}
+                type="password"
+                required
+                placeholder="Repeat password"
+                className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+            </label>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 bg-sky-600 text-white rounded-md shadow hover:bg-sky-700 disabled:opacity-60 transition"
             disabled={loading}
+            className="w-full py-2 rounded-md bg-sky-600 text-white font-medium shadow hover:bg-sky-700 disabled:opacity-60 transition"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
-          New here?{" "}
+        <div className="mt-4 text-center text-sm text-slate-500">
+          Already registered?{" "}
           <button
             type="button"
             onClick={() => {
               onClose();
-              if (onOpenRegister) setTimeout(onOpenRegister, 120);
+              if (onOpenLogin) setTimeout(onOpenLogin, 160);
             }}
             className="text-sky-600 font-medium hover:underline"
           >
-            Create an account
+            Sign in
           </button>
         </div>
       </div>
