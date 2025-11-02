@@ -122,7 +122,7 @@ export default function Register({ onClose, onOpenLogin }) {
               onChange={onChange}
               type="text"
               required
-              placeholder="Jane Doe"
+              placeholder="eg. shahid shaikh"
               className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
             />
           </label>
@@ -135,7 +135,7 @@ export default function Register({ onClose, onOpenLogin }) {
               onChange={onChange}
               type="email"
               required
-              placeholder="you@example.com"
+              placeholder="eg. shahid@example.com"
               className="mt-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
             />
           </label>
