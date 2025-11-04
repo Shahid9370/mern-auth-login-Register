@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Improved Login modal
- * - Controlled inputs with basic client-side validation
- * - Loading / error states and accessible focus handling
- * - Calls a placeholder API (replace with your /api/auth/login)
- * - Accepts onClose and onOpenRegister props
+ * Login modal with robust fetch handling (safe JSON parsing) and localStorage token/user save.
+ * - Calls POST http://localhost:5000/api/auth/login
+ * - Handles empty/non-JSON responses and surfaces raw text for easier debugging
+ * - Stores token and user in localStorage on success and dispatches "authChange"
  *
- * Usage: <Login onClose={() => {}} onOpenRegister={() => {}} />
+ * Props:
+ * - onClose(): close the modal
+ * - onOpenRegister(): optional, open the register modal (close this first)
+ *
+ * Note: dispatching "authChange" ensures Navbar (and other same-tab listeners) update immediately.
  */
+
 export default function Login({ onClose, onOpenRegister }) {
   const [loading, setLoading] = useState(false);
   const [values, setValues] = useState({ email: "", password: "", remember: false });
@@ -18,13 +22,12 @@ export default function Login({ onClose, onOpenRegister }) {
 
   useEffect(() => {
     const previouslyFocused = document.activeElement;
-    // focus first field when modal opens
     firstInputRef.current?.focus();
 
     function handleKey(e) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onClose?.();
       if (e.key === "Tab") {
-        // basic focus trap
+        // simple focus trap
         const focusable = modalRef.current?.querySelectorAll(
           'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
         );
@@ -42,7 +45,7 @@ export default function Login({ onClose, onOpenRegister }) {
     }
 
     document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden"; // prevent background scroll
+    document.body.style.overflow = "hidden";
 
     return () => {
       document.removeEventListener("keydown", handleKey);
@@ -64,6 +67,17 @@ export default function Login({ onClose, onOpenRegister }) {
     return "";
   }
 
+  // Safe fetch helper that always reads text and tries to parse JSON.
+  async function safeFetchJson(res) {
+    const text = await res.text();
+    if (!text) return { parsed: null, raw: "" };
+    try {
+      return { parsed: JSON.parse(text), raw: text };
+    } catch {
+      return { parsed: null, raw: text };
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -75,21 +89,48 @@ export default function Login({ onClose, onOpenRegister }) {
 
     setLoading(true);
     try {
-      // Replace with real API call:
-      // const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: values.email, password: values.password }) });
-      // const data = await res.json();
-      // if (!res.ok) throw new Error(data.message || "Login failed");
-      // store token, update app state, etc.
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email, password: values.password }),
+      });
 
-      // Demo: simulate network delay
-      await new Promise((r) => setTimeout(r, 800));
+      const { parsed, raw } = await safeFetchJson(res);
 
-      // On success close modal
+      // If server returned JSON and included a message, use it; otherwise fall back to raw text
+      const serverMessage = parsed?.message || (raw ? raw : null);
+
+      if (!res.ok) {
+        // Helpful error: include server message when available
+        throw new Error(serverMessage || `Login failed (${res.status})`);
+      }
+
+      // Expecting parsed JSON like { token, user } — adapt if backend differs
+      if (!parsed) {
+        // success status but non-JSON body — surface the raw body for debugging
+        throw new Error(`Server returned non-JSON success response: ${raw || "<empty body>"}`);
+      }
+
+      const { token, user } = parsed;
+
+      if (!token) {
+        throw new Error(parsed?.message || "No token returned from server");
+      }
+
+      // Save token/user to localStorage for app-wide auth persistence
+      localStorage.setItem("auth.token", token);
+      if (user) localStorage.setItem("auth.user", JSON.stringify(user));
+      else localStorage.setItem("auth.user", JSON.stringify({ email: values.email }));
+
+      // notify same-tab listeners that auth changed (so Navbar updates immediately)
+      window.dispatchEvent(new Event("authChange"));
+
+      // optionally respect "remember" (for demo we persist always)
       setLoading(false);
-      onClose();
+      onClose?.();
     } catch (err) {
       setLoading(false);
-      setError(err.message || "Login failed. Please try again.");
+      setError(err?.message || String(err));
     }
   }
 
@@ -107,7 +148,7 @@ export default function Login({ onClose, onOpenRegister }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-title"
-        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 transform transition-all duration-400 ease-out animate-modal-in"
+        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 transform transition-all duration-400 ease-out"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -122,9 +163,7 @@ export default function Login({ onClose, onOpenRegister }) {
             aria-label="Close dialog"
             className="ml-auto inline-flex p-2 rounded-md text-slate-500 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
 
@@ -172,18 +211,28 @@ export default function Login({ onClose, onOpenRegister }) {
               <span className="text-slate-600">Remember me</span>
             </label>
 
-            <button type="button" className="text-sky-600 hover:underline text-sm" onClick={() => alert("Forgot password flow not implemented in demo.")}>
+            <button
+              type="button"
+              className="text-sky-600 hover:underline text-sm"
+              onClick={() => alert("Forgot password flow not implemented in demo.")}
+            >
               Forgot?
             </button>
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-2 bg-sky-600 text-white rounded-md shadow hover:bg-sky-700 disabled:opacity-60 transition"
-            disabled={loading}
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 py-2 bg-sky-600 text-white rounded-md shadow hover:bg-sky-700 disabled:opacity-60 transition"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border">
+              Cancel
+            </button>
+          </div>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-500">
@@ -191,7 +240,7 @@ export default function Login({ onClose, onOpenRegister }) {
           <button
             type="button"
             onClick={() => {
-              onClose();
+              onClose?.();
               if (onOpenRegister) setTimeout(onOpenRegister, 120);
             }}
             className="text-sky-600 font-medium hover:underline"
@@ -200,34 +249,6 @@ export default function Login({ onClose, onOpenRegister }) {
           </button>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes modal-in {
-          0% {
-            opacity: 0;
-            transform: translateY(12px) scale(0.98);
-          }
-          60% {
-            opacity: 1;
-            transform: translateY(-6px) scale(1.02);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        .animate-modal-in {
-          animation: modal-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .animate-modal-in {
-            animation: none !important;
-            transform: none !important;
-            opacity: 1 !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
