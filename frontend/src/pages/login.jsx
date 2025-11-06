@@ -189,7 +189,7 @@ export default function Login({ onClose, onOpenRegister }) {
               className="flex items-center justify-center gap-2 py-2 rounded-md border bg-white/60 hover:shadow-md transition"
               onClick={() => alert("Demo only: social sign-in not implemented")}
             >
-              <img src="/icons/google.svg" alt="" className="w-4 h-4" />
+              <img src="https://img.icons8.com/?size=100&id=V5cGWnc9R4xj&format=png&color=000000" alt="" className="w-4 h-4" />
               <span className="text-sm">Google</span>
             </button>
             <button
@@ -197,7 +197,7 @@ export default function Login({ onClose, onOpenRegister }) {
               className="flex items-center justify-center gap-2 py-2 rounded-md border bg-white/60 hover:shadow-md transition"
               onClick={() => alert("Demo only: social sign-in not implemented")}
             >
-              <img src="/icons/github.svg" alt="" className="w-4 h-4" />
+              <img src="https://img.icons8.com/?size=100&id=12599&format=png&color=000000" alt="" className="w-4 h-4" />
               <span className="text-sm">GitHub</span>
             </button>
           </div>
