@@ -2,6 +2,413 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Final consolidated stylesheet for the app (App.jsx, Navbar, Login, Register).
+  - Tailwind directives are preserved (project must have Tailwind configured).
+  - Provides glassmorphism helpers, hero background + blobs, modal/backdrop,
+    floating-label inputs, buttons, animations, responsiveness and accessibility.
+  - Ensures Safari/iOS compatibility by placing -webkit-backdrop-filter before
+    the unprefixed backdrop-filter wherever used.
+  - Includes a graceful fallback for browsers that don't support backdrop-filter.
+*/
+
+/* -------------------------
+   Design tokens / variables
+   ------------------------- */
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.56);
+  --glass-border: rgba(255, 255, 255, 0.28);
+  --glass-shadow: 0 10px 40px rgba(2, 6, 23, 0.08);
+  --nav-blur: 8px;
+  --accent-rgb: 56, 189, 248; /* sky color as RGB for rgba() usage */
+  --muted-1: #6b7280; /* slate-500 */
+  --muted-2: #9ca3af; /* slate-400 */
+  --text: #0f172a; /* slate-900 */
+}
+
+/* -------------------------
+   Global / utility tweaks
+   ------------------------- */
+html, body, #root {
+  height: 100%;
+}
 body {
-  @apply bg-gray-100 text-gray-900;
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(180deg, #f8fafc 0%, #e6f6ff 100%);
+  color: var(--text);
+}
+
+/* Focus visible accessible ring for keyboard users */
+:focus {
+  outline: 2px solid rgba(59,130,246,0.24);
+  outline-offset: 2px;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.06);
+}
+
+/* -------------------------
+   Glass / backdrop helpers
+   ------------------------- */
+
+/* Generic glass-card used across site components */
+.glass-card {
+  /* Safari & iOS: -webkit- prefix BEFORE unprefixed property to satisfy some linters and browsers */
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 1rem; /* consistent rounded corners */
+}
+
+/* Glass pill & buttons */
+.glass-pill {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,0.66);
+  border: 1px solid rgba(255,255,255,0.28);
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+}
+
+.glass-btn {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.45));
+  border: 1px solid rgba(255,255,255,0.22);
+  color: var(--text);
+}
+
+/* Modal backdrop helper */
+.backdrop-blur-sm {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+/* Provide a no-backdrop fallback class for JS feature-detect (optional) */
+.no-backdrop .glass-card,
+.no-backdrop .glass-pill,
+.no-backdrop .glass-user-card,
+.no-backdrop .glass-nav {
+  /* fallback: stronger semi-opaque background, larger shadow, clearer border */
+  background: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(15,23,42,0.04) !important;
+  box-shadow: 0 14px 60px rgba(2,6,23,0.10) !important;
+}
+
+/* Also include a CSS @supports fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-card,
+  .glass-pill,
+  .glass-user-card,
+  .glass-nav {
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(15,23,42,0.03);
+    box-shadow: 0 12px 40px rgba(2,6,23,0.08);
+  }
+}
+
+/* -------------------------
+   Hero / background image + blobs
+   ------------------------- */
+
+.hero-section {
+  --mx: 0;
+  --my: 0;
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02)), var(--bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* slight dark overlay for text contrast */
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7,20,30,0.12), rgba(7,20,30,0.06));
+  z-index: 0;
+}
+
+/* Floating decorative blobs (parallax + float) */
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(36px);
+  transform: translate3d(calc(var(--mx) * 30px), calc(var(--my) * 30px), 0);
+  transition: transform 220ms ease-out;
+  z-index: 0;
+  opacity: 0.9;
+  mix-blend-mode: screen;
+}
+.blob-1 {
+  width: 420px; height: 420px;
+  right: -120px; top: -80px;
+  background: radial-gradient(circle at 30% 30%, rgba(56,189,248,0.28), transparent 40%),
+              linear-gradient(135deg, rgba(99,102,241,0.18), rgba(56,189,248,0.08));
+  animation: float 8s ease-in-out infinite;
+  opacity: 0.72;
+}
+.blob-2 {
+  width: 360px; height: 360px;
+  left: -140px; bottom: -100px;
+  background: radial-gradient(circle at 60% 40%, rgba(99,102,241,0.22), transparent 45%),
+              linear-gradient(90deg, rgba(56,189,248,0.12), rgba(99,102,241,0.08));
+  animation: float 10s ease-in-out infinite;
+  opacity: 0.66;
+}
+.blob-3 {
+  width: 220px; height: 220px;
+  left: 20%; top: 8%;
+  background: radial-gradient(circle at 40% 60%, rgba(56,189,248,0.2), transparent 50%),
+              linear-gradient(60deg, rgba(99,102,241,0.12), rgba(56,189,248,0.06));
+  animation: float 12s ease-in-out infinite;
+  opacity: 0.55;
+}
+@keyframes float {
+  0% { transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 10px), 0) translateY(0); }
+  50% { transform: translate3d(calc(var(--mx) * -10px), calc(var(--my) * -10px), 0) translateY(-12px); }
+  100% { transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 10px), 0) translateY(0); }
+}
+
+/* -------------------------
+   Navbar / header styles
+   ------------------------- */
+
+/* glassy nav base - ensure -webkit before unprefixed */
+.glass-nav {
+  -webkit-backdrop-filter: blur(var(--nav-blur));
+  backdrop-filter: blur(var(--nav-blur));
+  background: linear-gradient(180deg, rgba(255,255,255,0.56), rgba(255,255,255,0.45));
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* top state (slightly transparent) */
+.glass-nav-top {
+  background: linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0.35));
+}
+
+/* scrolled state: more opaque for contrast + extra blur */
+.glass-nav-scrolled {
+  -webkit-backdrop-filter: blur(calc(var(--nav-blur) + 2px));
+  backdrop-filter: blur(calc(var(--nav-blur) + 2px));
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.84));
+}
+
+/* small user card inside nav */
+.glass-user-card {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255,255,255,0.28);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  border-radius: 0.5rem;
+  gap: 0.6rem;
+}
+
+/* header mount animation (uses header[data-mounted]) */
+header[data-mounted="false"] {
+  transform: translateY(-6px);
+  opacity: 0;
+}
+header[data-mounted="true"] {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 320ms ease-out, opacity 320ms ease-out;
+}
+
+/* mobile menu smoothing */
+#mobile-menu { will-change: max-height, opacity, transform; }
+
+/* underline affordance for nav links */
+nav a {
+  position: relative;
+  padding-bottom: 6px;
+}
+nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(99,102,241,0.95));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms cubic-bezier(.2,.9,.3,1);
+  border-radius: 2px;
+}
+nav a:hover::after { transform: scaleX(1); }
+
+/* online dot pulse animation */
+@keyframes pulse-fast {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pulse-fast { animation: pulse-fast 1.2s cubic-bezier(.4,0,.6,1) infinite; }
+
+/* -------------------------
+   Modal & form UI (Login / Register)
+   ------------------------- */
+
+/* modal backdrop opacity controlled by mounted classes in React */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+}
+
+/* modal container defaults */
+.modal-root {
+  position: relative;
+  z-index: 50;
+}
+
+/* Floating label pattern:
+   - Inputs are rendered with placeholder=" " and class "peer"
+   - Label follows the input element (input + label)
+*/
+.floating-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  pointer-events: none;
+  color: var(--muted-1);
+  font-size: 0.95rem;
+  transition: transform 180ms cubic-bezier(.2,.9,.3,1), font-size 180ms, color 180ms;
+  transform-origin: left top;
+}
+
+/* When placeholder is shown -> label in place (larger) */
+input.peer:placeholder-shown + .floating-label,
+input.peer:placeholder-shown + label.floating-label {
+  transform: translateY(0) scale(1);
+  font-size: 1rem;
+  top: 12px;
+  color: var(--muted-2);
+}
+
+/* When input has content or is focused -> shrink & float label */
+input.peer:not(:placeholder-shown) + .floating-label,
+input.peer:focus + .floating-label {
+  transform: translateY(-10px) scale(0.82);
+  top: 8px;
+  color: rgba(var(--accent-rgb), 0.95);
+}
+
+/* Input base style */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  background: transparent;
+  border: 1px solid rgba(15,23,42,0.06);
+  min-height: 44px;
+  padding-left: 12px;
+  padding-right: 44px; /* room for password toggle button */
+  border-radius: 0.5rem;
+}
+input::placeholder { color: transparent; } /* required for peer:placeholder-shown pattern */
+
+input:focus {
+  outline: none;
+  border-color: rgba(var(--accent-rgb), 0.9);
+  box-shadow: 0 8px 30px rgba(2,6,23,0.06);
+}
+
+/* password toggle button inside input */
+.input-action {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.35rem;
+  color: #475569;
+}
+
+/* Social sign-in / small buttons */
+.social-btn {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(15,23,42,0.04);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Alert / toast styles */
+.alert {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+.alert-error { background: #fff1f2; color: #b91c1c; }
+.alert-success { background: #ecfdf5; color: #047857; }
+
+/* Spinner used by buttons */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Modal show/hide helper classes (React toggles) */
+.modal-enter {
+  animation: fadeScale 220ms cubic-bezier(.2,.9,.3,1) both;
+}
+@keyframes fadeScale {
+  from { opacity: 0; transform: translateY(-6px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Slight hover elevation for glass cards */
+.glass-card:hover {
+  box-shadow: 0 18px 60px rgba(2,6,23,0.12);
+  transform: translateY(-4px);
+  transition: transform 250ms ease, box-shadow 250ms ease;
+}
+
+/* Buttons micro-interactions */
+button {
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+button:active { transform: translateY(1px); }
+
+/* -------------------------
+   Misc helpers & responsive
+   ------------------------- */
+
+/* reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin, .modal-enter, .floating-label, .blob, .animate-pulse-fast { animation: none !important; transition: none !important; }
+  header { transition: none !important; transform: none !important; opacity: 1 !important; }
+}
+
+/* responsive: hide decorative blobs on small screens for clarity */
+@media (max-width: 768px) {
+  .blob-1, .blob-2 { display: none; }
+}
+
+/* small typographic utilities used in components */
+.text-slate-500 { color: #6b7280; }
+.text-slate-600 { color: #4b5563; }
+.text-slate-900 { color: #0f172a; }
+.rounded-2xl { border-radius: 1rem; }
+
+/* tiny width transition utility for password strength bar animation */
+.transition-width {
+  transition-property: width;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(.2,.9,.3,1);
 }

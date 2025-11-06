@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 /**
- * Navbar with auth-aware UI (auto-refresh):
- * - Reads auth.user from localStorage
- * - Listens for both "storage" (cross-tab) and "authChange" (same-tab) events
- * - Shows Sign in / Get started when logged out
- * - Shows user name/email, an animated online-dot, and Logout when logged in
- *
- * To trigger an immediate update after login/logout in the same tab, dispatch:
- *   window.dispatchEvent(new Event("authChange"))
- * (Login and Logout in this project will dispatch that event.)
+ * Navbar (glassmorphism + animations)
+ * - Reads auth.user from localStorage and listens for "storage" and "authChange"
+ * - Produces a glassy nav with subtle blur, entrance animation and mobile menu
+ * - Keep behavior the same as your original implementation but styled to match the app's glass UI
  */
 
 export default function Navbar({ onOpenLogin, onOpenRegister }) {
@@ -29,7 +24,6 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
     setMounted(true);
   }, []);
 
-  // small effect to add shadow / backdrop when user scrolls
   useEffect(() => {
     function onScroll() {
       setScrolled(window.scrollY > 8);
@@ -39,9 +33,6 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Keep the user state in sync:
-  // - "storage" event fires for changes made in other tabs/windows
-  // - custom "authChange" event (dispatched by Login/Logout) notifies same-tab listeners
   useEffect(() => {
     function onAuthChange() {
       try {
@@ -52,9 +43,7 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
       }
     }
 
-    // read initial value in case auth changed before mount
     onAuthChange();
-
     window.addEventListener("storage", onAuthChange);
     window.addEventListener("authChange", onAuthChange);
 
@@ -67,20 +56,20 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
   function handleLogout() {
     localStorage.removeItem("auth.token");
     localStorage.removeItem("auth.user");
-    // notify other listeners in same tab
     window.dispatchEvent(new Event("authChange"));
     setUser(null);
-    // optionally navigate or refresh
-    // window.location.reload();
   }
 
   return (
     <header
       data-mounted={mounted}
       className={
-        "fixed top-0 left-0 right-0 z-40 transition-all backdrop-blur-sm " +
-        (scrolled ? "bg-white/80 shadow-sm border-b border-slate-100" : "bg-white/60")
+        "fixed top-0 left-0 right-0 z-40 glass-nav transition-all " +
+        (scrolled
+          ? "glass-nav-scrolled shadow-sm border-b border-slate-100/40"
+          : "glass-nav-top")
       }
+      role="banner"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -98,7 +87,7 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
           </a>
 
           {/* Desktop nav */}
-          <nav className="hidden sm:flex sm:items-center sm:gap-6">
+          <nav className="hidden sm:flex sm:items-center sm:gap-6" aria-label="Main">
             <a href="#features" className="text-sm text-slate-700 hover:text-slate-900 transition-colors">
               Features
             </a>
@@ -133,8 +122,7 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
               </>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-3 px-2 py-1 rounded-md bg-white/40 border border-slate-100">
-                  {/* animated online dot */}
+                <div className="flex items-center gap-3 px-2 py-1 rounded-md glass-user-card">
                   <span className="relative flex items-center">
                     <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse-fast shadow-sm inline-block" />
                     <span className="sr-only">Online</span>
@@ -246,44 +234,6 @@ export default function Navbar({ onOpenLogin, onOpenRegister }) {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        /* subtle entrance for navbar: fade + slide from top on first mount */
-        header {
-          transform: translateY(-4px);
-          opacity: 0;
-        }
-        header[data-mounted='true'] {
-          transform: translateY(0);
-          opacity: 1;
-          transition: transform 320ms ease-out, opacity 320ms ease-out;
-        }
-
-        /* faster subtle pulse for online dot */
-        @keyframes pulse-fast {
-          0% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(1.25);
-            opacity: 0.7;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        .animate-pulse-fast {
-          animation: pulse-fast 1.2s cubic-bezier(.4,0,.6,1) infinite;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          header { transition: none !important; transform: none !important; opacity: 1 !important; }
-          .transition { transition: none !important; }
-          .animate-pulse-fast { animation: none !important; }
-        }
-      `}</style>
     </header>
   );
 }
